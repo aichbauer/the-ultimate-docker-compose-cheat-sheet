@@ -1,0 +1,173 @@
+# the version of Docker Compose we are using
+version: '3'
+
+# all the services that we are defining
+# services are running containers
+services:
+
+  # we are defining a service called client
+  # this is the client side of our application
+  client:
+    # we use the build command to create the image
+    # from the Dockerfile that we pass to this command
+    # in this case "Dockerfile.client"
+    # this image will then be used to create the container
+    # we also pass the context of the build
+    # as the docker-compose.yml file is in the same directory
+    # as the source code, we can use the .
+    # to refer to the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    # the ports that we want to publish
+    # the first port ist the port on the host system
+    # the second port is the port inside the container
+    # so we map the port 80 of the container to the
+    # port 80 of the host
+    ports:
+      - "80:80"
+    # whenever our container stops, we want it to restart
+    # unless explicitly stopped manually by us
+    restart: always
+
+  # we are defining a service called server
+  # this is the server side of our application
+  server:
+    # we use the build command to create the image
+    # from the Dockerfile that we pass to this command
+    # in this case "Dockerfile"
+    # this image will then be used to create the container
+    # we also pass the context of the build
+    # as the docker-compose.yml file is in the same directory
+    # as the source code, we can use the .
+    # to refer to the current directory
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # the ports that we want to publish
+    # the first port ist the port on the host system
+    # the second port is the port inside the container
+    # so we map the port 3000 of the container to the
+    # port 3000 of the host
+    ports:
+      - "3000:3000"
+    # whenever our container stops, we want it to restart
+    # unless explicitly stopped manually by us
+    # e.g. if our server crashes for whatever reason
+    # database not available, etc.
+    # we docker restarts the container automatically
+    restart: always
+    # docker compose uses a default network if we do not speficfy one
+    # but for this example we created our own network
+    # that connects our database and our server
+    # the definition of the network is at the bottom of this file
+    networks:
+      - server_database
+    # we want our server to wait for the database to be ready
+    # if we do not add a condition, the server will start
+    # before the database is ready, because the docker compose
+    # only checks if the container is running, not if the database
+    # is ready
+    depends_on:
+      database:
+        # our condition is that the database is healthy
+        # we define the healthcheck in the database service
+        condition: service_healthy
+
+  # we are defining a service called database
+  # this is the postgres database of our application
+  # container that are connected to the same network
+  # can communicate with each other
+  # the server can connect to the database
+  # by using the IP address of the database container
+  # in this network or the DNS name of the container
+  # in this network
+  # docker compose will automatically create a DNS name
+  # for each container in the network
+  # the DNS name is the name of the service
+  database:
+    # this time we do not use the build command
+    # we use the image command to use an existing image
+    # by default docker compose will look at the local registry
+    # to find the image
+    # if it is not available locally, it will pull it from
+    # the docker hub registry
+    image: postgres:16.1
+    ports:
+      # the ports that we want to publish
+      # the first port ist the port on the host system
+      # the second port is the port inside the container
+      # so we map the port 5432 of the container to the
+      # port 5432 of the host
+      # 5432 is the default port on which a postgres database
+      # will listen for incomming requests
+      - "5432:5432"
+    # we can define and pass environment variables
+    # to the container
+    # we will use this variables to connect to the database
+    # in our server
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+      POSTGRES_DB: database
+    # whenever our container stops, we want it to restart
+    # unless explicitly stopped manually by us
+    restart: always
+    # in docker compose we can define health checks
+    # health checks are commands that are executed
+    # to check if the container is healthy or not
+    healthcheck:
+      # in this case we check if the database is ready
+      # by using the pg_isready command
+      test: ["CMD", "pg_isready", "-U", "user", "-d", "database"]
+      # we check if the database is ready every 2 seconds
+      interval: 2s
+      # when a checks duration takes more than 2 seconds
+      # we consider it a failure
+      timeout: 2s
+      # we retry 3 times before we set the status to unhealthy
+      retries: 3
+      # we give the container 2 seconds for bootstrapping
+      # before we consider a failed health check
+      start_period: 2s
+    # we want to persist the data of the database
+    # so we use a volume
+    # the volume is defined at the bottom of this file
+    # we use a named volume
+    # the name is postgres_data_volume
+    # and we mount the path /var/lib/postgresql/data
+    # from the container to the volume
+    # when we create a named volume, docker will create
+    # a directory on the host system to store the data
+    # this is managed by docker
+    # it follows the same rules like the port mapping
+    # the first path (or name) is the path on the host system
+    # the second path is the path inside the container
+    volumes:
+      - postgres_data_volume:/var/lib/postgresql/data
+    # docker compose uses a default network if we do not speficfy one
+    # but for this example we created our own network
+    # that connects our database and our server
+    # the definition of the network is at the bottom of this file
+    networks:
+      - server_database
+
+# here we define the volumes that we use
+# if we want that a service uses a volume
+# we need to explicitly use it in the service
+volumes:
+  # we create a named volume called
+  # postgres_data_volume
+  postgres_data_volume:
+    # if we do not specify anything here
+    # docker will use the default settings for this volume
+
+# here we define the networks that we use
+# if we want that a service uses a network
+# we need to explicitly use it in the service
+networks:
+  # we create a network called
+  # server_database
+  server_database:
+    # if we do not specify anything here
+    # docker will use the default settings for this network

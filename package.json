@@ -1,0 +1,36 @@
+{
+  "name": "the-ultimate-docker-compose-cheat-sheet",
+  "version": "0.1.0",
+  "description": "Learn Docker Compose",
+  "main": "./src/server.js",
+  "scripts": {
+    "cleanup": "rm -rf node_modules && rm -rf build && rm -rf .cache && rm -rf .parcel-cache && rm -rf dist",
+    "comment": "echo \"All build and start commands are only example commands and would never be used like this in a procution environment\"",
+    "start:server": "node ./src/server/index.js",
+    "build:server": "mkdir -p ./build && cp ./src/server/index.js ./build",
+    "start:client": "mkdir -p ./dist && cp ./src/client/index.js ./dist && cp ./src/client/index.html ./dist && serve ./dist -p 80",
+    "build:client": "mkdir -p ./dist && cp ./src/client/index.js ./dist && cp ./src/client/index.html ./dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/aichbauer/the-ultimate-docker-compose-cheat-sheet.git"
+  },
+  "keywords": [
+    "docker compose cheat sheet"
+  ],
+  "author": "Lukas Aichbauer, MSc <lukas@devopscycle.com> (https://devopscycle.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/aichbauer/the-ultimate-docker-compose-cheat-sheet/issues"
+  },
+  "homepage": "https://github.com/aichbauer/the-ultimate-docker-compose-cheat-sheet#readme",
+  "dependencies": {
+    "@fastify/cors": "^8.4.1",
+    "@fastify/postgres": "^5.2.2",
+    "fastify": "^4.24.3",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "serve": "^14.2.1"
+  }
+}

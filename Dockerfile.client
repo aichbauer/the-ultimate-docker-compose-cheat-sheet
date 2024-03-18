@@ -1,0 +1,55 @@
+# the base image
+# name it builder
+# you can reference this stage
+# in other stages by this name
+FROM node:18-alpine as builder
+
+# working directory inside the image
+WORKDIR /app
+
+# copies files from the client to the image
+COPY ./package* .
+
+# run a command inside the image
+RUN npm ci
+
+# copies files from the client to the image
+COPY . .
+
+# run a command inside the container
+# this will create a new folder in called dist in our app directory
+# inside the dist directory, you will find the
+# final HTML and JavaScript file
+RUN npm run build:client
+
+# serve stage
+# unprivileged nginx base image named as serve
+# will start nginx as non root user
+FROM nginxinc/nginx-unprivileged:1.24 as serve
+
+# we can now copy things from the first stage to the second
+# we copy the build output to the directory where nginx serves files
+COPY --from=builder /app/dist /var/www
+
+# we overwrite the default config with our own
+# if you take a look at the GitHub repository, you
+# see the .nginx directory with the nginx.conf
+# here we only use the port 80
+# in production, you would also want to make sure
+# all requests, even in your internal network or Kubernetes cluster
+# is served via HTTPS when dealing with sensible data
+COPY --from=builder /app/.nginx/nginx.conf /etc/nginx/conf.d/default.conf
+
+# this instruction does not really expose the port 80
+# this is documentation so that we know which port is used for that image
+# we nee to expose this port via the --publish flag when running the container
+EXPOSE 80
+
+# The command used when the image is started as a container
+# Note: for Docker containers (or for debugging),
+# the "daemon off;" directive which is used in this example
+# tells nginx to stay in the foreground.
+# for containers, this is useful.
+# best practice: one container = one process.
+# one server (container) has only one service.
+CMD ["nginx", "-g", "daemon off;"]
